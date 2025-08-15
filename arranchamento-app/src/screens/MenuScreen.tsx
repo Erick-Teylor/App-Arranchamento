@@ -1,3 +1,4 @@
+// MenuScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, Button, StyleSheet, Alert, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -5,43 +6,70 @@ import { RootStackParamList } from '../navigation';
 import { colors } from '../theme';
 import MealCard from '../components/MealCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { marcarRefeicao } from '../services/api';
+import { fetchArranchamento, marcarRefeicao } from '../services/api';
 import { Usuario } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
 export default function MenuScreen({ route, navigation }: Props) {
-  const { dateISO, label, onConfirm } = route.params;
+  const { dateISO, label } = route.params;
   const [cafe, setCafe] = useState(false);
   const [almoco, setAlmoco] = useState(false);
   const [janta, setJanta] = useState(false);
   const [user, setUser] = useState<Usuario | null>(null);
+  const [loading, setLoading] = useState(false);
 
+  // Ajusta título da tela
   useEffect(() => {
     navigation.setOptions({ title: label ? `Cardápio — ${label}` : 'Cardápio do Dia' });
   }, [label, navigation]);
 
+  // Carrega usuário e arranchamento do dia
   useEffect(() => {
     (async () => {
       const raw = await AsyncStorage.getItem('user');
-      if (raw) setUser(JSON.parse(raw));
+      if (raw) {
+        const userData = JSON.parse(raw);
+        setUser(userData);
+
+        // Buscar arranchamento do dia
+        const { data, error } = await fetchArranchamento(userData.id, dateISO);
+        if (error) {
+          console.error('Erro ao buscar arranchamento:', error);
+        } else if (data && data.length > 0) {
+          setCafe(data[0].cafe);
+          setAlmoco(data[0].almoco);
+          setJanta(data[0].janta);
+        }
+      } else {
+        Alert.alert('Sessão expirada', 'Faça login novamente.');
+        navigation.navigate('Login');
+      }
     })();
-  }, []);
+  }, [dateISO, navigation]);
 
+  // Confirma seleção e envia para o Firebase
   async function confirmarSelecoes() {
-    if (!user?.id) return Alert.alert('Sessão expirada', 'Faça login novamente.');
+    if (!user?.id) {
+      return Alert.alert('Sessão expirada', 'Faça login novamente.');
+    }
 
+    setLoading(true);
     try {
       const { data, error } = await marcarRefeicao(user.id, dateISO, cafe, almoco, janta);
-      if (error) return Alert.alert('Erro', 'Não foi possível registrar.');
-
-      // Atualiza SelectDayScreen imediatamente
-      onConfirm?.(dateISO);
-
-      Alert.alert('Tudo certo!', 'Arranchamento registrado com sucesso.');
-      navigation.goBack();
+      if (error) {
+        console.error('Erro ao marcar refeição:', error);
+        Alert.alert('Erro', 'Não foi possível registrar.');
+      } else {
+        Alert.alert('Tudo certo!', 'Arranchamento registrado com sucesso.');
+        // Atualiza ícone no SelectDayScreen automaticamente
+        navigation.goBack();
+      }
     } catch (e: any) {
+      console.error('Falha na conexão:', e);
       Alert.alert('Falha na conexão', e?.message ?? 'Tente novamente');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -69,7 +97,7 @@ export default function MenuScreen({ route, navigation }: Props) {
           onChange={setJanta}
           question="Vai jantar?"
         />
-        <Button title="Confirmar Seleções" onPress={confirmarSelecoes} />
+        <Button title={loading ? 'Confirmando...' : 'Confirmar Seleções'} onPress={confirmarSelecoes} disabled={loading} />
       </View>
     </ScrollView>
   );
