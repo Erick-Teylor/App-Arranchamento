@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { auth } from '../services/FirebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../services/FirebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme';
 
 export default function LoginScreen({ navigation }) {
@@ -9,7 +10,7 @@ export default function LoginScreen({ navigation }) {
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  async function handleLogin() {
     if (!id || !senha) {
       return Alert.alert('Atenção', 'Preencha ID Militar e Senha');
     }
@@ -17,24 +18,24 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
 
     try {
-      const emailFicticio = `${id.trim()}@exemplo.com`;
-      const userCredential = await signInWithEmailAndPassword(auth, emailFicticio, senha);
+      console.log('📡 Tentando login no Firebase Auth...');
+      const userCredential = await signInWithEmailAndPassword(auth, `${id.trim()}@exemplo.com`, senha);
+      const user = userCredential.user;
 
-      console.log('✅ Login realizado, ID do usuário:', userCredential.user.uid);
+      console.log('✅ Login realizado com sucesso:', user.uid);
 
+      // Salvar usuário no AsyncStorage
+      await AsyncStorage.setItem('user', JSON.stringify({ id: user.uid, email: user.email }));
+
+      // Navegar para seleção de dia
       navigation.navigate('SelectDay');
-    } catch (err) {
-      console.error('❌ Erro no login:', err);
-
-      // ALERT garantido
-      Alert.alert(
-        'Erro de login',
-        'Não foi possível fazer login. Verifique seu ID Militar e senha.'
-      );
+    } catch (error: any) {
+      console.error('❌ Erro no login:', error);
+      Alert.alert('Erro', 'ID Militar ou senha inválidos');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <View style={styles.container}>

@@ -1,6 +1,6 @@
 // api.ts
 import { firestore } from './FirebaseConfig';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export type Arranchamento = {
   id?: string;
@@ -19,13 +19,29 @@ export type Presenca = {
   presente: boolean;
 };
 
-// BUSCAR ARRANCHAMENTO
+// BUSCAR ARRANCHAMENTO DE UM DIA
 export const fetchArranchamento = async (usuario_id: string, dataDia: string) => {
   try {
     const q = query(
       collection(firestore, 'arranchamento'),
       where('usuario_id', '==', usuario_id),
       where('data', '==', dataDia)
+    );
+    const querySnapshot = await getDocs(q);
+    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
+// BUSCAR ARRANCHAMENTOS DE VÁRIOS DIAS (otimizado)
+export const fetchArranchamentosPeriodo = async (usuario_id: string, dias: string[]) => {
+  try {
+    const q = query(
+      collection(firestore, 'arranchamento'),
+      where('usuario_id', '==', usuario_id),
+      where('data', 'in', dias) // busca todos os dias de uma vez (até 10 dias)
     );
     const querySnapshot = await getDocs(q);
     const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

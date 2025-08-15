@@ -5,13 +5,13 @@ import { RootStackParamList } from '../navigation';
 import { colors } from '../theme';
 import MealCard from '../components/MealCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api, endpoints } from '../services/api';
-import { ArranchamentoPayload, Usuario } from '../types';
+import { marcarRefeicao } from '../services/api';
+import { Usuario } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
 export default function MenuScreen({ route, navigation }: Props) {
-  const { dateISO, label } = route.params;
+  const { dateISO, label, onConfirm } = route.params;
   const [cafe, setCafe] = useState(false);
   const [almoco, setAlmoco] = useState(false);
   const [janta, setJanta] = useState(false);
@@ -29,25 +29,17 @@ export default function MenuScreen({ route, navigation }: Props) {
   }, []);
 
   async function confirmarSelecoes() {
-    if (!user?.id) {
-      return Alert.alert('Sessão expirada', 'Faça login novamente.');
-    }
-    const payload: ArranchamentoPayload = {
-      idMilitar: user.id,
-      dia: dateISO,
-      cafe,
-      almoco,
-      janta,
-    };
+    if (!user?.id) return Alert.alert('Sessão expirada', 'Faça login novamente.');
 
     try {
-      const { data } = await api.post(endpoints.arranchamento, payload);
-      if (data?.success) {
-        Alert.alert('Tudo certo!', 'Arranchamento registrado com sucesso.');
-        navigation.goBack();
-      } else {
-        Alert.alert('Erro', 'Não foi possível registrar.');
-      }
+      const { data, error } = await marcarRefeicao(user.id, dateISO, cafe, almoco, janta);
+      if (error) return Alert.alert('Erro', 'Não foi possível registrar.');
+
+      // Atualiza SelectDayScreen imediatamente
+      onConfirm?.(dateISO);
+
+      Alert.alert('Tudo certo!', 'Arranchamento registrado com sucesso.');
+      navigation.goBack();
     } catch (e: any) {
       Alert.alert('Falha na conexão', e?.message ?? 'Tente novamente');
     }
