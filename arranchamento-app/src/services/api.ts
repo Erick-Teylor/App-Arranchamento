@@ -1,9 +1,10 @@
 // api.ts
-import { supabase } from './supabase';
+import { firestore } from './FirebaseConfig';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export type Arranchamento = {
-  id?: number;
-  usuario_id: number;
+  id?: string;
+  usuario_id: string;
   data: string;
   cafe: boolean;
   almoco: boolean;
@@ -11,65 +12,53 @@ export type Arranchamento = {
 };
 
 export type Presenca = {
-  id?: number;
-  usuario_id: number;
+  id?: string;
+  usuario_id: string;
   companhia: string;
   data: string;
   presente: boolean;
 };
 
-// REGISTRO DE USUÁRIO
-export const registerUser = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
-  return { data, error };
-};
-
-// LOGIN
-export const loginUser = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-  return { data, error };
-};
-
 // BUSCAR ARRANCHAMENTO
-export const fetchArranchamento = async (usuario_id: number, dataDia: string) => {
-  const { data, error } = await supabase
-    .from<Arranchamento>('arranchamento', { schema: 'public' })
-    .select('*')
-    .eq('usuario_id', usuario_id)
-    .eq('data', dataDia);
-  return { data, error };
+export const fetchArranchamento = async (usuario_id: string, dataDia: string) => {
+  try {
+    const q = query(
+      collection(firestore, 'arranchamento'),
+      where('usuario_id', '==', usuario_id),
+      where('data', '==', dataDia)
+    );
+    const querySnapshot = await getDocs(q);
+    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 };
 
 // MARCAR REFEIÇÕES
 export const marcarRefeicao = async (
-  usuario_id: number,
+  usuario_id: string,
   dataDia: string,
   cafe: boolean,
   almoco: boolean,
   janta: boolean
 ) => {
-  const { data, error } = await supabase
-    .from<Arranchamento>('arranchamento', { schema: 'public' })
-    .insert([{ usuario_id, data: dataDia, cafe, almoco, janta }]);
-  return { data, error };
+  try {
+    const docRef = doc(firestore, 'arranchamento', `${usuario_id}_${dataDia}`);
+    await setDoc(docRef, { usuario_id, data: dataDia, cafe, almoco, janta });
+    return { data: 'ok', error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 };
 
 // MARCAR PRESENÇA (SARGENTO)
-export const marcarPresenca = async (
-  usuario_id: number,
-  companhia: string,
-  dataDia: string
-) => {
-  const { data, error } = await supabase
-    .from<Presenca>('presenca', { schema: 'public' })
-    .update({ presente: true })
-    .eq('usuario_id', usuario_id)
-    .eq('data', dataDia);
-  return { data, error };
+export const marcarPresenca = async (usuario_id: string, companhia: string, dataDia: string) => {
+  try {
+    const docRef = doc(firestore, 'presenca', `${usuario_id}_${dataDia}`);
+    await setDoc(docRef, { usuario_id, companhia, data: dataDia, presente: true });
+    return { data: 'ok', error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 };

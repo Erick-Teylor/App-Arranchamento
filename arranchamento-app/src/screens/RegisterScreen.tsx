@@ -3,7 +3,11 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 import { colors } from '../theme';
-import { supabase } from '../services/supabase'; // Certifique-se que está no caminho certo
+
+// Firebase modular SDK
+import { auth, firestore } from '../services/FirebaseConfig';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -24,44 +28,40 @@ export default function RegisterScreen({ navigation }: Props) {
 
     setLoading(true);
 
+    let userCredential = null;
+
     try {
-      console.log('📡 Criando usuário no Supabase Auth...');
-      const { data, error } = await supabase.auth.signUp({
-        email: `${id.trim()}@exemplo.com`, // ID Militar como email fictício
-        password: senha,
+      // 1️⃣ Criar usuário no Auth
+      const emailFicticio = `${id.trim()}@exemplo.com`;
+      userCredential = await createUserWithEmailAndPassword(auth, emailFicticio, senha);
+      console.log('✅ Usuário criado no Auth:', userCredential.user.uid);
+
+      // 2️⃣ Criar referência de documento correta no Firestore
+      const userDocRef = doc(firestore, 'usuarios', userCredential.user.uid);
+
+      // 3️⃣ Salvar dados no Firestore
+      await setDoc(userDocRef, {
+        id_militar: id,
+        nome: nome,
       });
+      console.log('✅ Registro salvo no Firestore');
 
-      if (error) {
-        console.error('❌ Erro no Auth:', error.message);
-        Alert.alert('Erro', error.message);
-        return;
-      }
-
-      console.log('✅ Usuário criado no Auth:', data.user?.id);
-
-      console.log('📡 Inserindo na tabela usuarios...');
-      const { error: insertError } = await supabase
-        .from('usuarios')
-        .insert([
-          {
-            id_militar: id, // Nome da coluna deve bater com o banco
-            nome: nome,
-            auth_id: data.user?.id,
-          },
-        ]);
-
-      if (insertError) {
-        console.error('❌ Erro na tabela usuarios:', insertError.message);
-        Alert.alert('Erro', insertError.message);
-        return;
-      }
-
-      console.log('✅ Registro salvo na tabela usuarios');
       Alert.alert('Sucesso', 'Conta criada! Faça login.');
-      navigation.goBack();
-    } catch (err) {
-      console.error('❌ Erro inesperado:', err);
-      Alert.alert('Erro', 'Falha ao criar conta.');
+      navigation.replace('Login');
+    } catch (err: any) {
+      console.error('❌ Erro ao criar conta:', err);
+
+      // Se usuário foi criado no Auth mas falhou no Firestore, remove o Auth
+      if (userCredential?.user) {
+        try {
+          await deleteUser(userCredential.user);
+          console.log('♻️ Usuário Auth removido devido a erro no Firestore');
+        } catch (deleteErr) {
+          console.error('❌ Falha ao deletar usuário Auth:', deleteErr);
+        }
+      }
+
+      Alert.alert('Erro', err.message || 'Falha ao criar conta.');
     } finally {
       setLoading(false);
     }

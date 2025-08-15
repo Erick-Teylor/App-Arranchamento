@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { supabase } from '../services/supabase'; // seu arquivo api.ts
+import { auth } from '../services/FirebaseConfig';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { colors } from '../theme';
 
 export default function LoginScreen({ navigation }) {
@@ -8,7 +9,7 @@ export default function LoginScreen({ navigation }) {
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
+  const handleLogin = async () => {
     if (!id || !senha) {
       return Alert.alert('Atenção', 'Preencha ID Militar e Senha');
     }
@@ -16,27 +17,24 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
 
     try {
-      console.log('📡 Fazendo login no Supabase Auth...');
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: `${id.trim()}@exemplo.com`, // mesmo padrão do registro
-        password: senha,
-      });
+      const emailFicticio = `${id.trim()}@exemplo.com`;
+      const userCredential = await signInWithEmailAndPassword(auth, emailFicticio, senha);
 
-      if (error) {
-        console.error('❌ Erro no login:', error.message);
-        Alert.alert('Erro', 'ID Militar ou senha inválidos');
-        return;
-      }
+      console.log('✅ Login realizado, ID do usuário:', userCredential.user.uid);
 
-      console.log('✅ Login realizado, ID do usuário:', data.user?.id);
       navigation.navigate('SelectDay');
     } catch (err) {
-      console.error('❌ Erro inesperado:', err);
-      Alert.alert('Erro', 'Não foi possível fazer login.');
+      console.error('❌ Erro no login:', err);
+
+      // ALERT garantido
+      Alert.alert(
+        'Erro de login',
+        'Não foi possível fazer login. Verifique seu ID Militar e senha.'
+      );
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
