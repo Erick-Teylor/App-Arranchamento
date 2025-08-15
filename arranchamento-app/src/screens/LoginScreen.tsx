@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/FirebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,7 +39,14 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Arranchamento</Text>
+      {/* Imagem da logo */}
+      <Image
+        source={require('../components/logo.png')} // Substitua pelo caminho da sua logo
+        style={styles.logo}
+        resizeMode="contain"
+      />
+
+      <Text style={styles.title}>Acesse sua conta</Text>
 
       <TextInput
         style={styles.input}
@@ -69,9 +76,10 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#fff' },
+  logo: { width: 250, height: 250, alignSelf: 'center', marginBottom: 5, marginTop: -40 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   input: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, marginBottom: 10 },
-  button: { backgroundColor: colors.primary, padding: 12, borderRadius: 5 },
+  button: { backgroundColor: colors.button, padding: 12, borderRadius: 5 },
   buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
   link: { color: 'blue', textAlign: 'center', marginTop: 10 },
 });

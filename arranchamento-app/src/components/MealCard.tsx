@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { colors } from '../theme';
 
 type Props = {
@@ -20,7 +20,22 @@ export default function MealCard({ title, subtitle, value, onChange, question }:
         <Text style={styles.question}>{question}</Text>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Não</Text>
-          <Switch value={value} onValueChange={onChange} />
+
+          {/* Botão customizado */}
+          <TouchableOpacity
+            style={[styles.switchBase, value ? styles.switchOn : styles.switchOff]}
+            activeOpacity={0.8}
+            onPress={() => onChange(!value)}
+          >
+            <View
+              style={[
+                styles.knob,
+                value ? styles.knobOn : styles.knobOff,
+                value && { transform: [{ translateX: 20 }] },
+              ]}
+            />
+          </TouchableOpacity>
+
           <Text style={styles.label}>Sim</Text>
         </View>
       </View>
@@ -43,4 +58,23 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   label: { color: colors.muted },
   question: { color: colors.text, marginRight: 10 },
+
+  // Estilos do toggle customizado
+  switchBase: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchOn: { backgroundColor: '#174e0c' },
+  switchOff: { backgroundColor: '#ccc' },
+  knob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  knobOn: { backgroundColor: '#fff', alignSelf: 'flex-start' },
+  knobOff: { backgroundColor: '#fff', alignSelf: 'flex-start' },
 });
+

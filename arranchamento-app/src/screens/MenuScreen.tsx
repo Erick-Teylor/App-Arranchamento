@@ -1,6 +1,6 @@
 // MenuScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 import { colors } from '../theme';
@@ -32,7 +32,6 @@ export default function MenuScreen({ route, navigation }: Props) {
         const userData = JSON.parse(raw);
         setUser(userData);
 
-        // Buscar arranchamento do dia
         const { data, error } = await fetchArranchamento(userData.id, dateISO);
         if (error) {
           console.error('Erro ao buscar arranchamento:', error);
@@ -62,7 +61,6 @@ export default function MenuScreen({ route, navigation }: Props) {
         Alert.alert('Erro', 'Não foi possível registrar.');
       } else {
         Alert.alert('Tudo certo!', 'Arranchamento registrado com sucesso.');
-        // Atualiza ícone no SelectDayScreen automaticamente
         navigation.goBack();
       }
     } catch (e: any) {
@@ -82,6 +80,7 @@ export default function MenuScreen({ route, navigation }: Props) {
           value={cafe}
           onChange={setCafe}
           question="Vai tomar café?"
+          activeColor="#174e0c"
         />
         <MealCard
           title="Almoço"
@@ -89,6 +88,7 @@ export default function MenuScreen({ route, navigation }: Props) {
           value={almoco}
           onChange={setAlmoco}
           question="Vai almoçar?"
+          activeColor="#174e0c"
         />
         <MealCard
           title="Jantar"
@@ -96,8 +96,19 @@ export default function MenuScreen({ route, navigation }: Props) {
           value={janta}
           onChange={setJanta}
           question="Vai jantar?"
+          activeColor="#174e0c"
         />
-        <Button title={loading ? 'Confirmando...' : 'Confirmar Seleções'} onPress={confirmarSelecoes} disabled={loading} />
+
+        {/* Botão customizado */}
+        <TouchableOpacity
+          style={[styles.confirmButton, loading && { opacity: 0.7 }]}
+          onPress={confirmarSelecoes}
+          disabled={loading}
+        >
+          <Text style={styles.confirmButtonText}>
+            {loading ? 'Confirmando...' : 'Confirmar Seleções'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -106,4 +117,16 @@ export default function MenuScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: '#EFEFF3', flexGrow: 1 },
   card: { backgroundColor: colors.bg, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
+  confirmButton: {
+    backgroundColor: '#174e0c',
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 16,
+  },
 });
